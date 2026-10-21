@@ -1,0 +1,58 @@
+"!ME 51800 - Fall 2024"
+"Final Project: Low-GWP Heat Pump Design for Chicago - Heating Mode"
+
+$UnitSystem SI C kPa kJ mass deg
+
+$Include Evaporator_SI.lib
+$Include Compressor_VS.lib
+$Include Condenser_SI.lib
+
+"! System Calls"
+CALL compressor_vs(R, R$, T_evap, DELTAT_sup, T_cond,  f_disp: m_dot_r, W_dot, h_2)
+CALL evaporator_si(R$, T_eai, T_wbi, m_dot_r, T_evap, DELTAT_sup : P_evap, h_1, h_4, Q_evap, T_eao, SHR)
+CALL condenser_si(R$, T_cai, m_dot_r, T_cond, DELTAT_sub : P_cond, h_2, h_3, Q_cond, T_cao)
+
+"! Parametric studies"
+$IFNOT PARAMETRIC TABLE
+R = 5250
+R$ = 'R1234ze(E)'
+DELTAT_sup = 10 [C]
+DELTAT_sub = 10 [C]
+T_eai = 0 [C]
+T_wbi = -1 [C]
+$ENDIF
+
+T_cai = 20 [C]
+W_dot_fans = 280 [W] 
+P = W_dot * Convert(kW, W) + W_dot_fans 	"system power consumption"
+COP = Q_cond * Convert(kW, W) / P 	"system COP for heating"
+HSPF = Q_cond * Convert(kW, Btu/hr) / P 	"HSPF calculation"
+h_3 = h_4 	"closure"
+f_disp = 1.0 [-] 	"regular capacity compressor"
+
+"! Enthalpy & Pressure Arrays"
+P[1] = P_evap
+P[2] = P_cond
+P[3] = P_cond
+P[4] = P_evap
+
+h[1] = h_1
+h[2] = h_2
+h[3] = h_3
+h[4] = h_4
+
+"! First law energy balance on the system"
+f_Q = 0.2 [-] 	"compressor heat loss coefficient copied from compressor library"
+Q_loss = f_Q * W_dot 	"compressor heat loss"
+DELTAE = Q_evap + (W_dot - Q_loss) - Q_cond 	"must be close to 0"
+
+"! Values from Cooling mode for plot"
+P_c[1] = 360.2 [kPa]
+P_c[2] = 831.5 [kPa]
+P_c[3] = 831.5 [kPa]
+P_c[4] = 360.2 [kPa]
+
+h_c[1] = 404.3
+h_c[2] = 432.9
+h_c[3] = 238.4
+h_c[4] = 238.4

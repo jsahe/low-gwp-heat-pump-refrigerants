@@ -1,0 +1,47 @@
+"ME 51800 - Fall 2024"
+"Condenser Estimation"
+
+$UnitSystem SI C kPa kJ mass deg
+
+"Refrigerant"
+R$ = 'R454B'
+
+"Heat Exchanger Characteristics"
+eta_o = 0.808 "overall outside surface fin efficiency"
+T_cond = 40 [C] "condensing temperature, C"
+T_cai = 20 [C]
+
+"Inputs"
+h_i = 1.4 [kW/m^2-C] "inside refrigerant heat transfer coefficient, kW/m^2-K"
+h_o = 0.065 [kW/m^2-C] "outside air heat transfer coefficient, kW/m^2-K"
+
+$IFNOT ParametricTable "condenser air inlet temperature, C"
+V_dot = 0.4 [m^3/sec] "air volumetric flow rate"
+A_i = 0.9 [m^2] "inside tube surface area, m^2"
+A_o = 50 [m^2] "outside overall (fin+tube) surface area, m^2"
+
+$ENDIF
+
+T_cri = 95 [C] "Refrigerant inlet temperature, C"
+m_dot_r = 28.1[g/sec]/1000[g/kg] "refrigerant mass flow rate, kg/sec"
+
+"Preliminary Calculations"
+P_cond = pressure (R$, T=T_cond,x=1.0) "condensing pressure, kPa"
+h_cri = Enthalpy(R$, T=T_cri,P=P_cond) "refrigerant inlet enthalpy, kJ/kg"
+m_dot_ca = V_dot/Volume(Air,T=T_cai,P=101.3[kPa]) "air flow rate, kg/sec"
+m_dot_cha = V_dot/Volume(AirH2O,T=T_cai,P=101.3[kPa],R=0.5) "air flow rate, kg/sec"
+c_pa = SpecHeat(Air,T=T_cai) "specific heat of air, kJ/kg-K"
+c_pm = SpecHeat(AirH2O,T=T_cai,P=101.3 [kPa], R=0.5) "specific heat of air, kJ/kg-K"
+
+"Heat Transfer Analysis"
+UA = 1./(1./h_i/A_i + 1./eta_o/h_o/A_o) "heat exchanger conductance, kJ/K"
+Ntu = UA/m_dot_ca/c_pa "number of transfer units"
+epsilon= 1 - Exp(-Ntu) "heat exchanger effectiveness"
+Q_cond = epsilon*m_dot_ca*c_pa*(T_cond - T_cai) "overall condenser heat transfer rate, kW"
+
+"Outlet Conditions"
+Q_cond = m_dot_ca*c_pa*(T_cao - T_cai)
+Q_cond = m_dot_r*(h_cri - h_cro)
+T_cro = Temperature(R$, h=h_cro,P=P_cond)
+x_cro = Quality(R$, h=h_cro,P=P_cond)
+DELTAT_sc = T_cond - T_cro

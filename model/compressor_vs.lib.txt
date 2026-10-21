@@ -1,0 +1,65 @@
+"Compressor Procedure for a scroll compressor with a displacement of  21.4 cm^3"
+ 
+Procedure compressor_vs(R, R$, T_e, DELTAT_sup, T_c,  f_disp: m_dot, W_dot, h_2)
+ 
+$UnitSystem SI C kPa kJ mass deg
+ 
+"Inputs  Variables
+  R$ = refrigerant
+  T_e = evaporating temperature, C
+  T_c = condensing temperature, C
+  P_1 = inlet pressure, kPa
+  P_2 = discharge pressure, kPa
+  DELTAT_sup = inlet superheat, C
+  f_disp = relative displacement rate (between 0 and 1 or >1 for scaling up)
+  R = compressor speed, rpm"
+ 
+"Output Variables
+  m_dot = refrigerant mass flow rate, kg/sec
+  W_dot = compressor electrical power requirement, kW
+  h_1 = compressor inlet enthalpy, kJ/kg
+  h_2 = compressor outlet enthalpy, kJ/kg"
+ 
+"Operating Pressures"
+P_1 = pressure(R$,T=T_e,x=1.0)	"compressor inlet pressure, kPa"
+P_2= pressure(R$,T=T_c,x=1.0)	"compressor outlet pressure, kPa"
+ 
+"ARI curve-fits of mass flow rate and power for a scroll compressor"
+  S = T_e
+  D = T_c
+  R_rated = 3000	"Nominal speed of compressor, rpm"
+ 
+W_dot_map := (0.041421737 + 0*S + 0.01044583*D + 0*R - 0.00037033*S*D - 1.99296e-6*S*R + 6.42497e-6*D*R + 0.000186063*S^2 - 0.000285505*D^2 + 3.41513e-8*R^2 + 3.63917e-8*S*D*R - 6.66071e-6*S^2*D - 4.72688e-8*S^2*R + 0*S^3 + 7.15648e-6*S*D^2 + 3.98839e-8*D^2*R + 3.93735e-6*D^3 + 3.73824e-10*S*R^2 - 1.83851e-10*D*R^2 + 0*R^3)
+
+  m_dot_map := (25.79554534 + 0.891358175*S + 0.053919352*D + 0.011633284*S^2 + 0.001924316*S*D - 0.001020847*D^2 + 2.21694e-5*S^3 - 9.14687e-6*D*S^2 - 2.79363e-5*S*D^2 + 2.05998e-6*D^3)*convert(g/s,kg/s)*R/R_rated
+
+"Map- based properties"
+T_sup_map := 10 [C]	"superheat, C"
+T_1_map := T_e + T_sup_map	"compressor inlet temperature, C"
+h_1_map := enthalpy(R$,T=T_1_map,P=P_1)	"compressor inlet enthalpy, kJ/kg"
+s_1_map := entropy(R$,T=T_1_map,P=P_1)	"compressor inlet entropy, kJ/kg-C"
+s_2s_map := s_1_map	"compressor isentropic outlet entropy, kJ/kg-C"
+h_2s_map := enthalpy(R$,s=s_2s_map,P=P_2)	"compressor isentropic outlet enthalpy, kJ/kg"
+rho_1_map := density(R$,T=T_1_map,P=P_1)	"compressor inlet density, kg/m^3"
+ 
+"Properties at actual conditions:"
+T_1 := T_e + DELTAT_sup
+h_1 := enthalpy(R$,T=T_1,P=P_1)	"compressor inlet enthalpy, kJ/kg"
+s_1 := entropy(R$,T=T_1,P=P_1)	"compressor inlet entropy, kJ/kg-C"
+s_2s := s_1	"compressor isentropic outlet entropy, kJ/kg-C"
+h_2s := enthalpy(R$,s=s_2s,P=P_2)	"compressor isentropic outlet enthalpy, kJ/kg"
+rho_1 := density(R$,T=T_1,P=P_1)	"compressor inlet density, kg/m^3"
+ 
+"Corrected mass flow rate and power consumption:"
+DELTAh_s_map := h_2s_map - h_1_map	"isentropic compressor enthalpy diff., kJ/kg"
+DELTAh_s := h_2s - h_1	"isentropic compressor enthalpy diff., kJ/kg"
+m_dot := f_disp*(1 + 0.75*(rho_1/rho_1_map - 1))*m_dot_map 
+W_dot := (m_dot/m_dot_map  *Deltah_s/Deltah_s_map)*W_dot_map 
+ 
+"Discharge Temperature:"
+f_Q := 0.2
+Q_loss := f_Q * W_dot	"compressor heat loss, kW"
+h_2 := h_1 + (1.-f_Q)*W_dot/m_dot	"compressor discharge enthalpy, kJ/kg"
+T_2 := temperature(R$,h=h_2,P=P_2)	"compressor discharge temperature, C"
+ 
+End

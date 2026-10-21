@@ -1,0 +1,50 @@
+"ME51800 - Fall 2024"
+"Jose Sandoval"
+"Homework 7.1"
+
+"!Assumptions
+- Lumped Method
+- Neglect refrigerant pressure drop
+- Evaporator coil is completely dry"
+
+"!TO DO:
+- Determine total heat transfer rate"
+
+$UnitSystem SI C kPa kJ Mass Deg kg
+$AutoSetUnits On
+
+"Inputs"
+A_i = 2.5 [m^2]	"Internal surface area"
+A_o = 18 [m^2]	"External surface area"
+V_dot = 0.27 [m^3/s]	"Volumetric air flow"
+T_db = 24 [C]	"Inlet air dry bulb temperature"
+T_wb = 17 [C]	"Inlet air wet bulb temperature"
+T_evap = 8 [C]	"Evaporating temperature"
+m_dot_r = 0.0216 [kg/s]	"Refrigerant mass flow rate"
+h_i = 4.7 [kW/m^2-K]	"Refrigerant side heat transfer coefficient"
+h_o = 0.086 [kW/m^2-K]	"Air side heat transfer coefficient"
+R$ = 'R454B'	"Refrigerant"
+eta_o = 0.61 [-]	"Overall external fin efficiency"
+p_atm = 1 [atm]*Convert(atm,kPa)	"Atmospheric pressure"
+dT = 0.05 [C]	"Temperature difference for saturation"
+
+c_pa = SpecHeat(AirH2O, P=p_atm, T=T_db, B=T_wb)
+rho_ea = Density(AirH2O, P=p_atm, T=T_db, B=T_wb)
+T_dp = DewPoint(AirH2O, P=p_atm, T=T_db, B=T_wb)
+
+m_dot_ea = V_dot * rho_ea
+
+"Calculation for Lumped Evaporator"
+Q_dot_evap = epsilon_e * m_dot_ea * c_pa * (T_db - T_evap)		"1"
+UA_e = 1 / ((1/(eta_o*h_o*A_o))+(1/(h_i*A_i)))			"2"
+NTU = UA_e / (m_dot_ea*c_pa)			"3"
+epsilon_e = 1 - Exp(-NTU)			"4"
+T_ea_o = T_db - Q_dot_evap / (m_dot_ea * c_pa)			"5"
+h_1 = h_4 + Q_dot_evap / m_dot_r			"6"
+
+"State 1"
+P[1] = Pressure(R$, T=T_evap, x=1)
+h_1 = Enthalpy(R$, T=T_evap, x=1)
+
+"State 4"
+P[4] = P[1]
